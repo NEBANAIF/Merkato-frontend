@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Icon from './Icon.jsx';
 
 /**
@@ -7,10 +7,27 @@ import Icon from './Icon.jsx';
  * - Alternating cream row stripes
  * - Hover row highlight
  * - No harsh borders — only subtle separators
- * - Mobile: each row becomes a cream card
+ * - Mobile: each row becomes a cream card by default (mobileLayout="cards"),
+ *   or a real horizontally-scrollable table (mobileLayout="table") for
+ *   pages with many columns, where cards would be more confusing than a
+ *   table you scroll sideways through.
+ * - Whenever the real <table> markup renders (desktop always, or mobile
+ *   when mobileLayout="table"), each row has a small mark dot on the left.
+ *   Tapping/clicking it highlights that row in gold so you can keep track
+ *   of which row you're on while scrolling horizontally — independent of
+ *   onRowClick, which still opens/selects the row as before.
  * - Action buttons in table use icon-only btn-icon / btn-icon-danger (no text)
  */
-export default function DataTable({ columns, rows, keyField = 'id', onRowClick, emptyMessage = 'No results.' }) {
+export default function DataTable({ columns, rows, keyField = 'id', onRowClick, emptyMessage = 'No results.', mobileLayout = 'cards' }) {
+  const [markedKeys, setMarkedKeys] = useState(() => new Set());
+  const toggleMark = (key, e) => {
+    e.stopPropagation();
+    setMarkedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
   if (!rows || rows.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-14 text-center">
@@ -34,38 +51,58 @@ export default function DataTable({ columns, rows, keyField = 'id', onRowClick, 
 
   const primaryCol = columns.find((c) => c.primary) || columns[0];
   const restCols   = columns.filter((c) => c !== primaryCol && !c.hideOnMobile);
+  const asTable = mobileLayout === 'table';
+  const markedBg = 'rgba(217,164,6,0.16)';
 
-  return (
-    <>
-      {/* ── Desktop table ─────────────────────────────────────────────── */}
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full border-separate border-spacing-0">
-          <thead>
-            <tr>
-              {columns.map((col, ci) => (
-                <th
-                  key={col.key}
-                  scope="col"
-                  className={`th ${getAlign(col)} ${ci === 0 ? 'rounded-tl-xl' : ''} ${ci === columns.length - 1 ? 'rounded-tr-xl' : ''}`}
-                >
-                  {col.header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, ri) => (
+  const table = (
+    <div className={asTable ? 'overflow-x-auto' : 'hidden overflow-x-auto md:block'}>
+      <table className="w-full border-separate border-spacing-0">
+        <thead>
+          <tr>
+            <th scope="col" className="th rounded-tl-xl" style={{ width: 28 }} aria-label="Mark row" />
+            {columns.map((col, ci) => (
+              <th
+                key={col.key}
+                scope="col"
+                className={`th ${getAlign(col)} ${ci === columns.length - 1 ? 'rounded-tr-xl' : ''}`}
+              >
+                {col.header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, ri) => {
+            const key = rowKey(row);
+            const marked = markedKeys.has(key);
+            const stripeBg = ri % 2 === 0 ? 'rgba(250,248,242,0.6)' : 'rgba(245,244,232,0.4)';
+            const bg = marked ? markedBg : stripeBg;
+            return (
               <tr
-                key={rowKey(row)}
+                key={key}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 className="group transition-colors"
                 style={{
-                  background: ri % 2 === 0 ? 'rgba(250,248,242,0.6)' : 'rgba(245,244,232,0.4)',
+                  background: bg,
                   cursor: onRowClick ? 'pointer' : undefined,
+                  boxShadow: marked ? 'inset 3px 0 0 #d9a406' : undefined,
                 }}
-                onMouseEnter={e => { if (onRowClick || true) e.currentTarget.style.background = 'rgba(163,166,118,0.10)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = ri % 2 === 0 ? 'rgba(250,248,242,0.6)' : 'rgba(245,244,232,0.4)'; }}
+                onMouseEnter={e => { if (!marked) e.currentTarget.style.background = 'rgba(163,166,118,0.10)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = bg; }}
               >
+                <td className="td" style={{ borderBottom: ri === rows.length - 1 ? 'none' : '1px solid rgba(140,128,70,0.09)' }}>
+                  <button
+                    type="button"
+                    onClick={(e) => toggleMark(key, e)}
+                    aria-pressed={marked}
+                    aria-label={marked ? 'Unmark row' : 'Mark row'}
+                    className="flex h-4 w-4 items-center justify-center rounded-full border transition-colors"
+                    style={{
+                      borderColor: marked ? '#d9a406' : 'rgba(140,128,70,0.35)',
+                      background: marked ? '#d9a406' : 'transparent',
+                    }}
+                  />
+                </td>
                 {columns.map((col) => (
                   <td
                     key={col.key}
@@ -76,10 +113,21 @@ export default function DataTable({ columns, rows, keyField = 'id', onRowClick, 
                   </td>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  if (asTable) {
+    return table;
+  }
+
+  return (
+    <>
+      {/* ── Desktop table ─────────────────────────────────────────────── */}
+      {table}
 
       {/* ── Mobile cards ──────────────────────────────────────────────── */}
       <ul className="space-y-2 md:hidden">
