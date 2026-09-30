@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocation } from 'react-router-dom';
 import BranchSelector from '../branch/BranchSelector.jsx';
 import Icon from '../components/Icon.jsx';
+import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 import NotificationBell from '../components/NotificationBell.jsx';
 import UserMenu from '../components/UserMenu.jsx';
 import { NAV_SECTIONS } from '../navigation.js';
@@ -40,6 +41,7 @@ export default function Topbar({ onOpenMenu }) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
+        <LanguageSwitcher />
         <NotificationBell />
         <UserMenu />
       </div>

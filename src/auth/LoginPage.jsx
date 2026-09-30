@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext.jsx';
 import { extractErrorMessage } from '../api/client.js';
 import Icon from '../components/Icon.jsx';
+import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -74,7 +75,8 @@ export default function LoginPage() {
       </aside>
 
       {/* ── Form panel ─────────────────────────────────────────────────── */}
-      <main className="flex flex-1 items-center justify-center px-5 py-10 sm:px-8">
+      <main className="relative flex flex-1 items-center justify-center px-5 py-10 sm:px-8">
+        <div className="absolute right-4 top-4"><LanguageSwitcher /></div>
         <div className="w-full max-w-[390px]">
           <div className="mb-8 lg:hidden"><Brandmark /></div>
 
