@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { translateIfAmharic } from '../i18n/translator.js';
 
 // The backend issues a bearer JWT (see AuthService/JwtTokenProvider) and
 // expects it in the Authorization header - no cookie-based session exists
@@ -62,6 +63,11 @@ export function extractErrorMessage(error) {
   if (error.response?.status) return `Request failed (${error.response.status})`;
   if (error.request) return 'Could not reach the server. Check your connection.';
   return error.message || 'Something went wrong.';
+}
+
+/** alert() boxes are outside the page, so the DOM translator can't reach them. */
+export function notifyError(error) {
+  alert(translateIfAmharic(extractErrorMessage(error)));
 }
 
 export default apiClient;

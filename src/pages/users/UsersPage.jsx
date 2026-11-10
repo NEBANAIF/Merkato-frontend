@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { searchUsers, createUser, updateUser, setUserActive, resetUserPassword } from '../../api/users.js';
 import { listBranches } from '../../api/branches.js';
 import { listRoles } from '../../api/roles.js';
-import { extractErrorMessage } from '../../api/client.js';
+import { extractErrorMessage, notifyError } from '../../api/client.js';
 import DataTable from '../../components/DataTable.jsx';
 import LoadingState from '../../components/LoadingState.jsx';
 import ErrorState from '../../components/ErrorState.jsx';
@@ -63,7 +63,7 @@ export default function UsersPage() {
   const confirmToggle = async () => {
     setBusy(true);
     try { await setUserActive(toggleTarget.id, !toggleTarget.active); setToggleTarget(null); load(); }
-    catch (err) { alert(extractErrorMessage(err)); } finally { setBusy(false); }
+    catch (err) { notifyError(err); } finally { setBusy(false); }
   };
 
   return (

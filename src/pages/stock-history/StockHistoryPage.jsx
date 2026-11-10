@@ -6,7 +6,7 @@ import DataTable from '../../components/DataTable.jsx';
 import LoadingState from '../../components/LoadingState.jsx';
 import ErrorState from '../../components/ErrorState.jsx';
 import Pagination from '../../components/Pagination.jsx';
-import { formatDate } from '../../utils/format.js';
+import { formatDate, formatTime } from '../../utils/format.js';
 import ElegantSelect from '../../components/ElegantSelect.jsx';
 
 /** Spec section 20: additions green, deductions red - the full inventory ledger. */
@@ -14,7 +14,7 @@ const COLUMNS = [
   { key: 'occurredAt', header: 'Date', render: (r) => (
       <div>
         <p>{formatDate(r.occurredAt)}</p>
-        <p className="text-xs text-ink-400">{r.occurredAt ? new Date(r.occurredAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : ''}</p>
+        <p className="text-xs text-ink-400">{formatTime(r.occurredAt)}</p>
       </div>
     ) },
   { key: 'productName', header: 'Product', render: (r) => (

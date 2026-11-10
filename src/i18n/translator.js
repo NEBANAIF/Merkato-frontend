@@ -17,6 +17,10 @@
  * Anything inside an element marked translate="no" is never touched.
  */
 import AM from './am.js';
+import SERVER from './am.server.js';
+
+// am.js (UI text) wins over am.server.js (server messages / enums) on a clash.
+const DICT = { ...SERVER, ...AM };
 
 const ATTRS = ['placeholder', 'title', 'aria-label', 'alt'];
 const norm = (s) => s.replace(/\s+/g, ' ').trim();
@@ -24,7 +28,7 @@ const norm = (s) => s.replace(/\s+/g, ' ').trim();
 const exact = new Map();
 const lower = new Map();
 const patterns = [];
-for (const [k, v] of Object.entries(AM)) {
+for (const [k, v] of Object.entries(DICT)) {
   const key = norm(k);
   if (key.includes('{}')) {
     const src = key.split('{}').map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('(.+?)');
@@ -59,6 +63,49 @@ function translateCore(core, depth = 0) {
     const parts = m.slice(1).map((p) => translateCore(p, depth + 1) ?? p);
     let i = 0;
     return value.replace(/\{(\d+)?\}/g, (_, n) => parts[(n ? Number(n) : ++i) - 1] ?? '');
+  }
+  return translateFallback(core, depth);
+}
+
+// "unitPrice" / "unit_price" -> "unit price" (server field names in validation errors).
+const humanizeField = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ').toLowerCase();
+
+/**
+ * Last resorts, tried only when the whole text has no entry and matches no pattern.
+ * They let a small dictionary cover text that is built from known pieces:
+ *   "name: must not be blank; sku: must not be blank"  (several API messages joined)
+ *   "unitPrice: must be greater than 0"                 (field: message)
+ *   "Revenue, Gross Profit, Net Profit"                 (list of known labels)
+ *   "In stock 5"                                        (known label + number)
+ */
+function translateFallback(core, depth) {
+  if (core.includes('; ')) {
+    const parts = core.split('; ');
+    const out = parts.map((p) => translateCore(p, depth + 1));
+    if (out.some((x) => x !== undefined)) return out.map((x, i) => x ?? parts[i]).join('፤ ');
+  }
+  const colon = core.match(/^([A-Za-z][A-Za-z0-9_ .]{0,40}): (.+)$/);
+  if (colon) {
+    const msg = translateCore(colon[2], depth + 1);
+    if (msg !== undefined) {
+      const field = translateCore(colon[1], depth + 1) ?? translateCore(humanizeField(colon[1]), depth + 1) ?? colon[1];
+      return `${field}፦ ${msg}`;
+    }
+  }
+  if (core.includes(', ')) {
+    const parts = core.split(', ');
+    const out = parts.map((p) => translateCore(p, depth + 1));
+    if (out.every((x) => x !== undefined)) return out.join('፣ ');
+  }
+  if (core.includes(' and ')) {
+    const parts = core.split(' and ');
+    const out = parts.map((p) => translateCore(p, depth + 1));
+    if (out.every((x) => x !== undefined)) return out.join(' እና ');
+  }
+  const num = core.match(/^(.*[A-Za-z)])\s+(-?\d[\d.,]*%?)$/);
+  if (num) {
+    const label = translateCore(num[1], depth + 1);
+    if (label !== undefined) return `${label} ${num[2]}`;
   }
   return undefined;
 }
@@ -164,5 +211,14 @@ export function stopTranslator() {
 
 /** Translate one string (used by tests and anywhere a plain string is needed). */
 export function translate(str) {
+  return translateText(str);
+}
+
+/**
+ * For text that never reaches the DOM (alert() boxes): translated only while the
+ * app is in Amharic, otherwise returned untouched.
+ */
+export function translateIfAmharic(str) {
+  if (typeof document === 'undefined' || document.documentElement.lang !== 'am') return str;
   return translateText(str);
 }

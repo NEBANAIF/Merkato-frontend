@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { searchCustomers, createCustomer, updateCustomer, setCustomerActive, getCustomerBalance } from '../../api/customers.js';
-import { extractErrorMessage } from '../../api/client.js';
+import { extractErrorMessage, notifyError } from '../../api/client.js';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import DataTable from '../../components/DataTable.jsx';
 import LoadingState from '../../components/LoadingState.jsx';
@@ -67,7 +67,7 @@ export default function CustomersPage() {
   const confirmToggle = async () => {
     setBusy(true);
     try { await setCustomerActive(toggleTarget.id, !toggleTarget.active); setToggleTarget(null); load(); }
-    catch (err) { alert(extractErrorMessage(err)); } finally { setBusy(false); }
+    catch (err) { notifyError(err); } finally { setBusy(false); }
   };
 
   return (

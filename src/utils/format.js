@@ -1,3 +1,14 @@
+/**
+ * Dates follow the app language: Amharic month names and day periods while the app is
+ * in Amharic, the browser's own locale otherwise. (Calendar stays Gregorian so a date
+ * on screen always matches the date on a receipt or in the database.) LanguageContext
+ * sets <html lang> before the screen re-renders, and re-mounts the app on a language
+ * change, so every date is re-formatted.
+ */
+function dateLocale() {
+  return typeof document !== 'undefined' && document.documentElement.lang === 'am' ? 'am-ET' : undefined;
+}
+
 const currencyFormatter = new Intl.NumberFormat(undefined, {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
@@ -19,13 +30,13 @@ export function formatCompact(value) {
 export function formatDate(value) {
   if (!value) return '—';
   const d = new Date(value);
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  return d.toLocaleDateString(dateLocale(), { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 export function formatDateTime(value) {
   if (!value) return '—';
   const d = new Date(value);
-  return d.toLocaleString(undefined, {
+  return d.toLocaleString(dateLocale(), {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -70,5 +81,11 @@ export function daysInRange(fromIso, toIso) {
 /** 'YYYY-MM-DD' -> "21 Sep 2026", without a timezone shift. */
 export function formatIsoDate(iso, options = { day: 'numeric', month: 'short', year: 'numeric' }) {
   if (!iso) return '—';
-  return parseIsoDate(iso).toLocaleDateString(undefined, options);
+  return parseIsoDate(iso).toLocaleDateString(dateLocale(), options);
+}
+
+/** Clock time only, e.g. "10:00 AM" (Amharic: "10:00 ጥዋት"). */
+export function formatTime(value) {
+  if (!value) return '';
+  return new Date(value).toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' });
 }

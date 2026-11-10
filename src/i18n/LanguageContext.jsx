@@ -19,7 +19,12 @@ function readInitial() {
  * completely untouched - the translator only runs while Amharic is selected.
  */
 export function LanguageProvider({ children }) {
-  const [lang, setLangState] = useState(readInitial);
+  const [lang, setLangState] = useState(() => {
+    const initial = readInitial();
+    // Set before the first render so date formatting sees the right language.
+    document.documentElement.lang = initial;
+    return initial;
+  });
 
   useEffect(() => {
     document.documentElement.lang = lang;
@@ -30,6 +35,8 @@ export function LanguageProvider({ children }) {
 
   const setLang = useCallback((next) => {
     const value = next === 'am' ? 'am' : 'en';
+    // Before the state change, so the re-render below already formats in the new language.
+    document.documentElement.lang = value;
     try { localStorage.setItem(LANG_KEY, value); } catch { /* storage unavailable - still switch for this visit */ }
     setLangState(value);
   }, []);
@@ -42,4 +49,14 @@ export function LanguageProvider({ children }) {
 
 export function useLanguage() {
   return useContext(LanguageContext);
+}
+
+/**
+ * Re-mounts its children when the language changes, so things formatted in code
+ * (dates) are redone. The session (AuthProvider) lives outside it and is kept; only
+ * unsaved on-screen state, like a half-filled form, is reset.
+ */
+export function LanguageBoundary({ children }) {
+  const { lang } = useLanguage();
+  return <React.Fragment key={lang}>{children}</React.Fragment>;
 }
